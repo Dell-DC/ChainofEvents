@@ -1,13 +1,161 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<title>My first three.js app</title>
-		<style>
-			body { margin: 0; }
-		</style>
-	</head>
-	<body>
-		<script type="module" src="/main.js"></script>
-	</body>
+<head>
+    <meta charset="UTF-8">
+    <title>3D Room Exploration</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let camera, scene, renderer;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let prevTime = performance.now();
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+        const rotation = new THREE.Vector2();
+        
+        init();
+        animate();
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 5);
+
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Light setup
+            const light = new THREE.HemisphereLight(0xeeeeff, 0x777788, 0.75);
+            light.position.set(0.5, 1, 0.75);
+            scene.add(light);
+
+            // Room setup
+            const roomGeometry = new THREE.BoxGeometry(10, 10, 10);
+            const roomMaterial = new THREE.MeshBasicMaterial({ color: 0x808080, side: THREE.BackSide });
+            const room = new THREE.Mesh(roomGeometry, roomMaterial);
+            scene.add(room);
+
+            // Event listeners for controls
+            document.addEventListener('keydown', onKeyDown, false);
+            document.addEventListener('keyup', onKeyUp, false);
+
+            // Mouse move event
+            document.addEventListener('mousemove', onMouseMove, false);
+
+            // Pointer lock setup
+            document.body.addEventListener('click', () => {
+                document.body.requestPointerLock();
+            });
+
+            // Pointer lock change and error handlers
+            document.addEventListener('pointerlockchange', onPointerLockChange, false);
+            document.addEventListener('pointerlockerror', onPointerLockError, false);
+
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function onKeyDown(event) {
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    moveForward = true;
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    moveLeft = true;
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    moveBackward = true;
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    moveRight = true;
+                    break;
+            }
+        }
+
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    moveForward = false;
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    moveLeft = false;
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    moveBackward = false;
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    moveRight = false;
+                    break;
+            }
+        }
+
+        function onMouseMove(event) {
+            if (document.pointerLockElement === document.body) {
+                rotation.y -= event.movementX * 0.002;
+                rotation.x -= event.movementY * 0.002;
+                rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotation.x));
+            }
+        }
+
+        function onPointerLockChange() {
+            if (document.pointerLockElement === document.body) {
+                console.log('Pointer locked');
+            } else {
+                console.log('Pointer unlocked');
+            }
+        }
+
+        function onPointerLockError() {
+            console.error('Pointer lock error');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = (time - prevTime) / 1000;
+
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+
+            if (moveForward) velocity.z -= 400.0 * delta;
+            if (moveBackward) velocity.z += 400.0 * delta;
+            if (moveLeft) velocity.x -= 400.0 * delta;
+            if (moveRight) velocity.x += 400.0 * delta;
+
+            camera.translateX(velocity.x * delta);
+            camera.translateZ(velocity.z * delta);
+
+            camera.rotation.y = rotation.y;
+            camera.rotation.x = rotation.x;
+
+            prevTime = time;
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
 </html>
